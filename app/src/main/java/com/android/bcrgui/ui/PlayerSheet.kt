@@ -1,6 +1,7 @@
 package com.android.bcrgui.ui
 
 import android.content.Intent
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,6 +38,12 @@ fun PlayerSheet(
 
     var isExpanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    if (isExpanded) {
+        BackHandler {
+            isExpanded = false
+        }
+    }
 
     if (recording == null) return
 

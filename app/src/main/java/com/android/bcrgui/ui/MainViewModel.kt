@@ -59,8 +59,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _durationFilter = MutableStateFlow("all") // all, short, medium, long
     val durationFilter: StateFlow<String> = _durationFilter
 
-    private val _dateFilter = MutableStateFlow("all") // all, today, yesterday, week, older
+    private val _dateFilter = MutableStateFlow("all") // all, today, yesterday, week, older, custom
     val dateFilter: StateFlow<String> = _dateFilter
+
+    private val _customStartDate = MutableStateFlow<Long?>(null)
+    val customStartDate: StateFlow<Long?> = _customStartDate
+
+    private val _customEndDate = MutableStateFlow<Long?>(null)
+    val customEndDate: StateFlow<Long?> = _customEndDate
 
     private val _contactFilter = MutableStateFlow<List<String>>(emptyList())
     val contactFilter: StateFlow<List<String>> = _contactFilter
@@ -85,7 +91,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _simFilter,
         _durationFilter,
         _dateFilter,
-        _contactFilter
+        _contactFilter,
+        _customStartDate,
+        _customEndDate
     ) { flows ->
         val raw = flows[0] as List<CallRecording>
         val query = flows[1] as String
@@ -94,6 +102,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val durationRange = flows[4] as String
         val dateRange = flows[5] as String
         val contactVal = flows[6] as List<String>
+        val customStart = flows[7] as Long?
+        val customEnd = flows[8] as Long?
 
         var list = raw
 
@@ -138,17 +148,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         if (dateRange != "all") {
-            val now = System.currentTimeMillis()
-            val dayMs = 24 * 60 * 60 * 1000L
-            list = when (dateRange) {
-                "today" -> list.filter { now - it.lastModified < dayMs }
-                "yesterday" -> list.filter {
-                    val age = now - it.lastModified
-                    age in dayMs..(dayMs * 2)
+            if (dateRange == "custom") {
+                if (customStart != null) {
+                    list = list.filter { it.lastModified >= customStart }
                 }
-                "week" -> list.filter { now - it.lastModified < dayMs * 7 }
-                "older" -> list.filter { now - it.lastModified >= dayMs * 7 }
-                else -> list
+                if (customEnd != null) {
+                    list = list.filter { it.lastModified <= customEnd }
+                }
+            } else {
+                val now = System.currentTimeMillis()
+                val dayMs = 24 * 60 * 60 * 1000L
+                list = when (dateRange) {
+                    "today" -> list.filter { now - it.lastModified < dayMs }
+                    "yesterday" -> list.filter {
+                        val age = now - it.lastModified
+                        age in dayMs..(dayMs * 2)
+                    }
+                    "week" -> list.filter { now - it.lastModified < dayMs * 7 }
+                    "older" -> list.filter { now - it.lastModified >= dayMs * 7 }
+                    else -> list
+                }
             }
         }
 
@@ -167,6 +186,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setDateFilter(filter: String) {
         _dateFilter.value = filter
+        if (filter != "custom") {
+            _customStartDate.value = null
+            _customEndDate.value = null
+        }
+    }
+
+    fun setCustomDateRange(start: Long?, end: Long?) {
+        _customStartDate.value = start
+        _customEndDate.value = end
+        _dateFilter.value = if (start != null || end != null) "custom" else "all"
     }
 
     fun addContactFilter(name: String) {

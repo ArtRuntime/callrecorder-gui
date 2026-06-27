@@ -21,6 +21,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -92,6 +93,8 @@ fun DashboardScreen(
     val contactFilter by viewModel.contactFilter.collectAsState()
     val contactNames by viewModel.contactNames.collectAsState()
     val selectedRecording by viewModel.selectedRecording.collectAsState()
+    val customStartDate by viewModel.customStartDate.collectAsState()
+    val customEndDate by viewModel.customEndDate.collectAsState()
 
     var showDeleteConfirmDialog by remember { mutableStateOf<CallRecording?>(null) }
     var contextMenuRecording by remember { mutableStateOf<CallRecording?>(null) }
@@ -348,6 +351,20 @@ fun DashboardScreen(
                                 "yesterday" -> "Yesterday"
                                 "week" -> "Last 7 Days"
                                 "older" -> "Older"
+                                "custom" -> {
+                                    if (customStartDate != null && customEndDate != null) {
+                                        val formatter = java.text.SimpleDateFormat("MM/dd HH:mm", java.util.Locale.getDefault())
+                                        "${formatter.format(java.util.Date(customStartDate!!))} - ${formatter.format(java.util.Date(customEndDate!!))}"
+                                    } else if (customStartDate != null) {
+                                        val formatter = java.text.SimpleDateFormat("MM/dd HH:mm", java.util.Locale.getDefault())
+                                        "From ${formatter.format(java.util.Date(customStartDate!!))}"
+                                    } else if (customEndDate != null) {
+                                        val formatter = java.text.SimpleDateFormat("MM/dd HH:mm", java.util.Locale.getDefault())
+                                        "To ${formatter.format(java.util.Date(customEndDate!!))}"
+                                    } else {
+                                        "Custom Range"
+                                    }
+                                }
                                 else -> dateFilter
                             }
                             InputChip(
@@ -659,7 +676,8 @@ fun DashboardScreen(
                                     "today" to "Today",
                                     "yesterday" to "Yesterday",
                                     "week" to "Last 7 Days",
-                                    "older" to "Older"
+                                    "older" to "Older",
+                                    "custom" to "Custom Range"
                                 ).forEach { (value, label) ->
                                     val isSelected = dateFilter == value
                                     FilterChip(
@@ -667,6 +685,81 @@ fun DashboardScreen(
                                         onClick = { viewModel.setDateFilter(value) },
                                         label = { Text(label) }
                                     )
+                                }
+                            }
+
+                            if (dateFilter == "custom") {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    val startText = remember(customStartDate) {
+                                        if (customStartDate != null) {
+                                            val formatter = java.text.SimpleDateFormat("MMM d, yyyy • h:mm a", java.util.Locale.getDefault())
+                                            formatter.format(java.util.Date(customStartDate!!))
+                                        } else {
+                                            "Select Start Time"
+                                        }
+                                    }
+                                    val endText = remember(customEndDate) {
+                                        if (customEndDate != null) {
+                                            val formatter = java.text.SimpleDateFormat("MMM d, yyyy • h:mm a", java.util.Locale.getDefault())
+                                            formatter.format(java.util.Date(customEndDate!!))
+                                        } else {
+                                            "Select End Time"
+                                        }
+                                    }
+
+                                    OutlinedCard(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable {
+                                                showDateTimePicker(context, customStartDate) { time ->
+                                                    viewModel.setCustomDateRange(time, customEndDate)
+                                                }
+                                            },
+                                        colors = CardDefaults.outlinedCardColors(
+                                            containerColor = if (customStartDate != null) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface
+                                        )
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Column {
+                                                Text("Start Time", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                Text(startText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            }
+                                        }
+                                    }
+
+                                    OutlinedCard(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable {
+                                                showDateTimePicker(context, customEndDate) { time ->
+                                                    viewModel.setCustomDateRange(customStartDate, time)
+                                                }
+                                            },
+                                        colors = CardDefaults.outlinedCardColors(
+                                            containerColor = if (customEndDate != null) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface
+                                        )
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Column {
+                                                Text("End Time", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                Text(endText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1049,4 +1142,41 @@ private fun formatSize(bytes: Long): String {
         bytes / Math.pow(1024.0, digitGroups.toDouble()),
         units[digitGroups]
     )
+}
+
+private fun showDateTimePicker(
+    context: android.content.Context,
+    initialTimestamp: Long?,
+    onDateTimeSelected: (Long) -> Unit
+) {
+    val calendar = java.util.Calendar.getInstance()
+    if (initialTimestamp != null) {
+        calendar.timeInMillis = initialTimestamp
+    }
+
+    android.app.DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            calendar.set(java.util.Calendar.YEAR, year)
+            calendar.set(java.util.Calendar.MONTH, month)
+            calendar.set(java.util.Calendar.DAY_OF_MONTH, dayOfMonth)
+
+            android.app.TimePickerDialog(
+                context,
+                { _, hourOfDay, minute ->
+                    calendar.set(java.util.Calendar.HOUR_OF_DAY, hourOfDay)
+                    calendar.set(java.util.Calendar.MINUTE, minute)
+                    calendar.set(java.util.Calendar.SECOND, 0)
+                    calendar.set(java.util.Calendar.MILLISECOND, 0)
+                    onDateTimeSelected(calendar.timeInMillis)
+                },
+                calendar.get(java.util.Calendar.HOUR_OF_DAY),
+                calendar.get(java.util.Calendar.MINUTE),
+                false
+            ).show()
+        },
+        calendar.get(java.util.Calendar.YEAR),
+        calendar.get(java.util.Calendar.MONTH),
+        calendar.get(java.util.Calendar.DAY_OF_MONTH)
+    ).show()
 }
