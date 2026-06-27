@@ -13,7 +13,7 @@ android {
         targetSdk = 37
         versionCode = 100
         versionName = "1.0.0"
-
+        multiDexEnabled = false
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
