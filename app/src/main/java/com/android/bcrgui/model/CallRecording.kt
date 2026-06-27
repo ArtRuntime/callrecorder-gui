@@ -39,6 +39,33 @@ data class CallRecording(
             !contactName.isNullOrBlank() || !callLogName.isNullOrBlank() || !callerName.isNullOrBlank() -> phoneNumber
             else -> null
         }
+
+    /**
+     * Formats the raw call date string into a user-friendly format showing local date and time.
+     */
+    val formattedDateTime: String
+        get() {
+            if (date != null) {
+                try {
+                    val parser = java.text.SimpleDateFormat("yyyyMMdd_HHmmss.SSSZ", java.util.Locale.getDefault())
+                    val d = parser.parse(date)
+                    if (d != null) {
+                        val formatter = java.text.SimpleDateFormat("MMM d, yyyy • h:mm a", java.util.Locale.getDefault())
+                        return formatter.format(d)
+                    }
+                } catch (e: Exception) {
+                    try {
+                        if (date.all { it.isDigit() }) {
+                            val ms = date.toLong()
+                            val formatter = java.text.SimpleDateFormat("MMM d, yyyy • h:mm a", java.util.Locale.getDefault())
+                            return formatter.format(java.util.Date(ms))
+                        }
+                    } catch (ex: Exception) {}
+                }
+            }
+            val formatter = java.text.SimpleDateFormat("MMM d, yyyy • h:mm a", java.util.Locale.getDefault())
+            return formatter.format(java.util.Date(lastModified))
+        }
 }
 
 data class RecycledFile(

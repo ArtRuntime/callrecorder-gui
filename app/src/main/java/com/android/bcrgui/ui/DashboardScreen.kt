@@ -949,20 +949,33 @@ fun RecordingItem(
                     )
                 }
                 
-                // Extra meta indicators (e.g. package type)
-                if (recording.packageName != null && recording.packageName != "com.android.phone") {
+                // Date, Time and optional App source package badge
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
                     Text(
-                        text = recording.packageName.substringAfterLast('.'),
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                } else {
-                    Text(
-                        text = recording.date ?: "",
+                        text = recording.formattedDateTime,
                         fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
                     )
+
+                    if (recording.packageName != null && recording.packageName != "com.android.phone") {
+                        Surface(
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        ) {
+                            Text(
+                                text = recording.packageName.substringAfterLast('.').uppercase(),
+                                fontSize = 8.sp,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
                 }
             }
 

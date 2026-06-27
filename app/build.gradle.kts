@@ -11,8 +11,8 @@ android {
         applicationId = "com.android.bcrgui"
         minSdk = 23
         targetSdk = 37
-        versionCode = 101
-        versionName = "1.0.1"
+        versionCode = 102
+        versionName = "1.0.2"
         multiDexEnabled = false
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

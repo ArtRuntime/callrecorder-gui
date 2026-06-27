@@ -4,7 +4,7 @@ A modern, fast, and feature-rich Material 3 companion player GUI for Basic Call 
 
 ---
 
-## Screenshots Showoff
+## Screenshots
 
 ### Onboarding Flow
 | Step 1: Storage Permission | Step 2: Configuration |
@@ -12,19 +12,23 @@ A modern, fast, and feature-rich Material 3 companion player GUI for Basic Call 
 | ![Onboarding Step 1](images/onbarding1.png) | ![Onboarding Step 2](images/onbarding2.png) |
 
 ### Main Dashboard & List Views
-| Modern Dashboard | Multi-Select & Bulk Actions |
+| Modern Dashboard (Light) | Multi-Select & Bulk Actions |
 | :---: | :---: |
 | ![Dashboard Home](images/homescreen.png) | ![Dashboard Selection](images/homescreen2.png) |
 
-### Media Player & Customization
-| Floating Collapsed Player | Fullscreen Player Controller | Settings & Accent Customizer |
-| :---: | :---: | :---: |
-| ![Player Bar](images/player2.png) | ![Full Player View](images/player-view.png) | ![Settings Panel](images/settings.png) |
+| Modern Dashboard (Dark 1) | Modern Dashboard (Dark 2) |
+| :---: | :---: |
+| ![Dashboard Dark 1](images/homescreen-darkmode1.png) | ![Dashboard Dark 2](images/homescreen-darkmode2.png) |
 
-### Private Recycle Bin
-| Checkbox Multi-Restore & Delete |
-| :---: |
-| ![Recycle Bin Dialog](images/recyclebin.png) |
+### Media Player & Customization
+| Floating Collapsed Player | Fullscreen Player (Light) | Fullscreen Player (Dark) | Settings & Customizer |
+| :---: | :---: | :---: | :---: |
+| ![Player Bar](images/player2.png) | ![Full Player View](images/player-view.png) | ![Full Player View Dark](images/player-darkmode.png) | ![Settings Panel](images/settings.png) |
+
+### Recycle Bin & Advanced Filters
+| Private Recycle Bin | Advanced Filters & Search |
+| :---: | :---: |
+| ![Recycle Bin Dialog](images/recyclebin.png) | ![Filter Configuration](images/filters.png) |
 
 ---
 
