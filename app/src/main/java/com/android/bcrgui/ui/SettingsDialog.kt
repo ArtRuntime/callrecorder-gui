@@ -517,7 +517,61 @@ fun RecycleBinDialog(
     }
     
     var selectedFiles by remember { mutableStateOf(emptySet<String>()) }
-    
+    var showEmptyConfirmDialog by remember { mutableStateOf(false) }
+    var showDeleteSelectedConfirmDialog by remember { mutableStateOf(false) }
+
+    if (showEmptyConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showEmptyConfirmDialog = false },
+            title = { Text("Empty Recycle Bin?") },
+            text = { Text("Are you sure you want to permanently delete all items in the Recycle Bin? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.emptyRecycleBin()
+                        selectedFiles = emptySet()
+                        showEmptyConfirmDialog = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Empty")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEmptyConfirmDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showDeleteSelectedConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteSelectedConfirmDialog = false },
+            title = { Text("Delete Selected?") },
+            text = { Text("Are you sure you want to permanently delete the selected items? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        selectedFiles.forEach { name ->
+                            viewModel.deletePermanently(name)
+                        }
+                        selectedFiles = emptySet()
+                        showDeleteSelectedConfirmDialog = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteSelectedConfirmDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { 
@@ -582,10 +636,7 @@ fun RecycleBinDialog(
                             }
                             TextButton(
                                 onClick = {
-                                    selectedFiles.forEach { name ->
-                                        viewModel.deletePermanently(name)
-                                    }
-                                    selectedFiles = emptySet()
+                                    showDeleteSelectedConfirmDialog = true
                                 },
                                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
@@ -595,8 +646,7 @@ fun RecycleBinDialog(
                         } else if (recycledCount > 0) {
                             TextButton(
                                 onClick = {
-                                    viewModel.emptyRecycleBin()
-                                    selectedFiles = emptySet()
+                                    showEmptyConfirmDialog = true
                                 },
                                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
