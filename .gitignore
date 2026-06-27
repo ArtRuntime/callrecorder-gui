@@ -1,0 +1,32 @@
+/inspiration
+inspiration/*
+
+# Android Studio & IntelliJ IDEA files
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.idea/codeStyles/
+.idea/shelf/
+.idea/
+
+# Gradle outputs
+/build
+/app/build
+
+# Native build outputs
+.cxx
+.externalNativeBuild
+
+# Log files
+*.log
+as3_dump.txt
+
+# OS-generated files
+.DS_Store
+Thumbs.db

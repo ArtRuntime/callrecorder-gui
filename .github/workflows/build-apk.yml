@@ -1,0 +1,44 @@
+name: Build Apk
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the code
+    - uses: actions/checkout@v4
+    
+    # Step 2: Set up JDK 17
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    # Step 3: Grant execute permission for gradlew
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    # Step 4: Build both Debug and Release APKs
+    - name: Build Debug and Release APKs
+      run: |
+        ./gradlew assembleDebug
+        ./gradlew assembleRelease
+
+    # Step 5: Upload all APKs from both debug and release folders
+    - name: Upload all APKs
+      uses: actions/upload-artifact@v4
+      with:
+        name: apk-files
+        path: |
+          app/build/outputs/apk/debug/*.apk
+          app/build/outputs/apk/release/*.apk
