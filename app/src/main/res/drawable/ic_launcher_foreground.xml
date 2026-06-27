@@ -1,0 +1,43 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Top-level scaling/translation to fit 960x960 coordinate space to 108x108 -->
+    <group
+        android:scaleX="0.1125"
+        android:scaleY="0.1125"
+        android:translateX="0"
+        android:translateY="108">
+        <!-- SVG scale group: scale=0.75 centered around (480, -480) -->
+        <group
+            android:pivotX="480"
+            android:pivotY="-480"
+            android:scaleX="0.50"
+            android:scaleY="0.50">
+            
+            <!-- Phone receiver -->
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M777.61,-140q-113.07 0-227.19-52.58-114.11-52.58-209.88-148.34-95.38-95.77-147.96-209.7Q140-664.54 140-777.61q0-18 12-30.2Q164-820 182-820h130.46q15.15 0 26.73 9.89 11.58 9.88 14.73 24.42L376.85-668q2.38 16.38-1 28.15-3.39 11.77-12.16 19.77l-92.38 89.93q22.3 40.84 50.96 77.27 28.65 36.42 62.04 69.57 32.92 32.93 70 61.16 37.08 28.23 80.08 52.54l89.76-90.54q9.39-9.77 22.74-13.7 13.34-3.92 27.73-1.92l111.07 22.62q15.15 4 24.73 15.46t9.58 26V-182q0 18-12.19 30-12.2 12-30.2 12Z" />
+
+            <!-- Play button badge overlay in bottom-right corner -->
+            <group
+                android:translateX="110"
+                android:translateY="-120">
+                <group
+                    android:pivotX="480"
+                    android:pivotY="-520"
+                    android:scaleX="0.55"
+                    android:scaleY="0.55">
+                    <path
+                        android:fillColor="#FFFFFF"
+                        android:pathData="M480,-520m-180,0a180,180 0,1,1 360,0a180,180 0,1,1 -360,0" />
+                    <path
+                        android:fillColor="#43A047"
+                        android:pathData="M430,-600L580,-520L430,-440Z" />
+                </group>
+            </group>
+        </group>
+    </group>
+</vector>
