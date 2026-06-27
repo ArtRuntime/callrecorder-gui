@@ -1,4 +1,4 @@
-name: Build Apk
+name: Build and Release Apk
 
 on:
   push:
@@ -7,9 +7,11 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -34,11 +36,28 @@ jobs:
         ./gradlew assembleDebug
         ./gradlew assembleRelease
 
-    # Step 5: Upload all APKs from both debug and release folders
-    - name: Upload all APKs
-      uses: actions/upload-artifact@v4
+    # Step 5: Extract version name from build.gradle.kts
+    - name: Get version name from build.gradle.kts
+      id: get_version
+      run: |
+        VERSION_NAME=$(grep "versionName =" app/build.gradle.kts | head -n 1 | cut -d'"' -f2)
+        echo "version=v$VERSION_NAME" >> "$GITHUB_OUTPUT"
+
+    # Step 6: Create GitHub Release and Upload APKs
+    - name: Create Release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v2
       with:
-        name: apk-files
-        path: |
+        tag_name: ${{ steps.get_version.outputs.version }}
+        name: Release ${{ steps.get_version.outputs.version }}
+        body: |
+          Automatic release of BCR Call Recordings Player ${{ steps.get_version.outputs.version }}.
+          
+          Assets included:
+          - Debug APK
+          - Release APK (Signed with Debug keys)
+        files: |
           app/build/outputs/apk/debug/*.apk
           app/build/outputs/apk/release/*.apk
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

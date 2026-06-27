@@ -1,8 +1,12 @@
 package com.android.bcrgui.player
 
 import android.content.Context
+import android.content.Intent
 import android.media.MediaPlayer
 import android.media.PlaybackParams
+import android.media.session.MediaSession
+import android.media.session.PlaybackState
+import android.media.MediaMetadata
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
@@ -28,19 +32,134 @@ class BcrAudioPlayer(private val context: Context) {
     val playbackSpeed: StateFlow<Float> = _playbackSpeed
 
     private var activeUri: Uri? = null
+    private var activeTitle = ""
+    private var activeArtist = ""
+
+    var mediaSession: MediaSession? = null
+
+    companion object {
+        var instance: BcrAudioPlayer? = null
+    }
+
+    init {
+        instance = this
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mediaSession = MediaSession(context, "BcrAudioPlayer").apply {
+                isActive = true
+                setCallback(object : MediaSession.Callback() {
+                    override fun onPlay() {
+                        resume()
+                    }
+                    override fun onPause() {
+                        pause()
+                    }
+                    override fun onSeekTo(pos: Long) {
+                        this@BcrAudioPlayer.seekTo(pos)
+                    }
+                    override fun onSkipToNext() {
+                        val newPos = (currentPosition.value + 10000).coerceAtMost(duration.value)
+                        this@BcrAudioPlayer.seekTo(newPos)
+                    }
+                    override fun onSkipToPrevious() {
+                        val newPos = (currentPosition.value - 10000).coerceAtLeast(0)
+                        this@BcrAudioPlayer.seekTo(newPos)
+                    }
+                })
+            }
+        }
+    }
 
     private val updateProgressAction = object : Runnable {
         override fun run() {
             mediaPlayer?.let { mp ->
                 if (mp.isPlaying) {
                     _currentPosition.value = mp.currentPosition.toLong()
+                    updatePlaybackState()
                     handler.postDelayed(this, 100)
                 }
             }
         }
     }
 
-    fun play(uri: Uri) {
+    private fun updatePlaybackState() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            val state = if (_isPlaying.value) {
+                PlaybackState.STATE_PLAYING
+            } else {
+                PlaybackState.STATE_PAUSED
+            }
+            val playbackState = PlaybackState.Builder()
+                .setActions(
+                    PlaybackState.ACTION_PLAY or
+                    PlaybackState.ACTION_PAUSE or
+                    PlaybackState.ACTION_SEEK_TO or
+                    PlaybackState.ACTION_SKIP_TO_NEXT or
+                    PlaybackState.ACTION_SKIP_TO_PREVIOUS
+                )
+                .setState(state, _currentPosition.value, _playbackSpeed.value)
+                .build()
+            mediaSession?.setPlaybackState(playbackState)
+        }
+    }
+
+    private fun updateMetadata(title: String, artist: String, durationMs: Long) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            val builder = MediaMetadata.Builder()
+                .putString(MediaMetadata.METADATA_KEY_TITLE, title)
+                .putString(MediaMetadata.METADATA_KEY_ARTIST, artist)
+                .putLong(MediaMetadata.METADATA_KEY_DURATION, durationMs)
+
+            // Dynamically render the premium app launcher icon as album art
+            try {
+                val drawable = context.packageManager.getApplicationIcon(context.packageName)
+                val width = drawable.intrinsicWidth.coerceAtLeast(1)
+                val height = drawable.intrinsicHeight.coerceAtLeast(1)
+                val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+                val canvas = android.graphics.Canvas(bitmap)
+                drawable.setBounds(0, 0, canvas.width, canvas.height)
+                drawable.draw(canvas)
+                builder.putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, bitmap)
+                builder.putBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON, bitmap)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            mediaSession?.setMetadata(builder.build())
+        }
+    }
+
+    private fun startService() {
+        val intent = Intent(context, BcrPlaybackService::class.java).apply {
+            action = BcrPlaybackService.ACTION_START
+            putExtra(BcrPlaybackService.EXTRA_TITLE, activeTitle)
+            putExtra(BcrPlaybackService.EXTRA_ARTIST, activeArtist)
+            mediaSession?.let {
+                putExtra(BcrPlaybackService.EXTRA_TOKEN, it.sessionToken)
+            }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
+    }
+
+    private fun updateServiceState() {
+        val intent = Intent(context, BcrPlaybackService::class.java).apply {
+            action = BcrPlaybackService.ACTION_UPDATE_STATE
+            putExtra(BcrPlaybackService.EXTRA_IS_PLAYING, _isPlaying.value)
+        }
+        context.startService(intent)
+    }
+
+    private fun stopService() {
+        val intent = Intent(context, BcrPlaybackService::class.java).apply {
+            action = BcrPlaybackService.ACTION_STOP
+        }
+        context.startService(intent)
+    }
+
+    fun play(uri: Uri, title: String, artist: String) {
         if (activeUri == uri && mediaPlayer != null) {
             resume()
             return
@@ -48,13 +167,14 @@ class BcrAudioPlayer(private val context: Context) {
 
         stop()
         activeUri = uri
+        activeTitle = title
+        activeArtist = artist
 
         try {
             val mp = MediaPlayer().apply {
                 setDataSource(context, uri)
                 prepare()
-                
-                // Set playback speed if supported
+
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     try {
                         playbackParams = PlaybackParams().apply { speed = _playbackSpeed.value }
@@ -66,6 +186,8 @@ class BcrAudioPlayer(private val context: Context) {
                 setOnCompletionListener {
                     _isPlaying.value = false
                     _currentPosition.value = _duration.value
+                    updatePlaybackState()
+                    updateServiceState()
                     handler.removeCallbacks(updateProgressAction)
                 }
             }
@@ -76,6 +198,10 @@ class BcrAudioPlayer(private val context: Context) {
             _isPlaying.value = true
             _duration.value = mp.duration.toLong()
             _currentPosition.value = 0L
+
+            updateMetadata(title, artist, mp.duration.toLong())
+            updatePlaybackState()
+            startService()
 
             handler.post(updateProgressAction)
         } catch (e: Exception) {
@@ -89,6 +215,8 @@ class BcrAudioPlayer(private val context: Context) {
             if (mp.isPlaying) {
                 mp.pause()
                 _isPlaying.value = false
+                updatePlaybackState()
+                updateServiceState()
                 handler.removeCallbacks(updateProgressAction)
             }
         }
@@ -99,6 +227,8 @@ class BcrAudioPlayer(private val context: Context) {
             if (!mp.isPlaying) {
                 mp.start()
                 _isPlaying.value = true
+                updatePlaybackState()
+                updateServiceState()
                 handler.post(updateProgressAction)
             }
         }
@@ -108,6 +238,7 @@ class BcrAudioPlayer(private val context: Context) {
         mediaPlayer?.let { mp ->
             mp.seekTo(positionMs.toInt())
             _currentPosition.value = positionMs
+            updatePlaybackState()
         }
     }
 
@@ -119,7 +250,6 @@ class BcrAudioPlayer(private val context: Context) {
                     val wasPlaying = mp.isPlaying
                     mp.playbackParams = mp.playbackParams.apply { this.speed = speed }
                     if (!wasPlaying) {
-                        // In Android, setting playbackParams on paused player can start it; force pause it if it was paused
                         mp.pause()
                     }
                 } catch (e: Exception) {
@@ -127,6 +257,7 @@ class BcrAudioPlayer(private val context: Context) {
                 }
             }
         }
+        updatePlaybackState()
     }
 
     fun stop() {
@@ -145,9 +276,13 @@ class BcrAudioPlayer(private val context: Context) {
         _isPlaying.value = false
         _currentPosition.value = 0L
         activeUri = null
+        stopService()
     }
 
     fun release() {
         stop()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mediaSession?.release()
+        }
     }
 }

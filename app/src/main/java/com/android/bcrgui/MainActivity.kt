@@ -1,5 +1,6 @@
 package com.android.bcrgui
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -47,6 +48,22 @@ class MainActivity : ComponentActivity() {
         }
 
         enableEdgeToEdge()
+
+        // Request notification permission for API >= 33
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val hasNotificationPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (!hasNotificationPermission) {
+                androidx.core.app.ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    101
+                )
+            }
+        }
+
         setContent {
             val accentColor by viewModel.accentColor.collectAsState()
             val amoledMode by viewModel.amoledMode.collectAsState()

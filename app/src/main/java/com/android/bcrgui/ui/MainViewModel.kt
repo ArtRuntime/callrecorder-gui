@@ -326,7 +326,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun selectRecording(recording: CallRecording?) {
         _selectedRecording.value = recording
         if (recording != null) {
-            audioPlayer.play(recording.uri)
+            audioPlayer.play(
+                recording.uri,
+                recording.resolvedName,
+                recording.resolvedSubtext ?: ""
+            )
         } else {
             audioPlayer.stop()
         }
@@ -337,7 +341,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             audioPlayer.pause()
         } else {
             _selectedRecording.value?.let {
-                audioPlayer.play(it.uri)
+                audioPlayer.play(
+                    it.uri,
+                    it.resolvedName,
+                    it.resolvedSubtext ?: ""
+                )
             }
         }
     }
